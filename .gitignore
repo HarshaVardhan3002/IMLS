@@ -1,0 +1,46 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyTorch model weights (large binary files)
+*.pth
+*.pt
+*.ckpt
+
+# Dataset archives (too large for git)
+*.zip
+*.tar
+*.tar.gz
+*.tar.bz2
+
+# Dataset folders (CARLA images)
+Excercise/
+train/
+validation/
+test/
+test-fog/
+test-night/
+test-town-01/
+
+# Lecture PDFs (course materials, not exercise answers)
+*.pdf
+
+# Git bundle
+*.bundle
+
+# IDE & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Python virtual environments
+.env
+venv/
+env/
+*.egg-info/
+dist/
+build/

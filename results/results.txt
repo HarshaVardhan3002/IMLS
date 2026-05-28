@@ -1,0 +1,30 @@
+--- DATA EXPLORATION SUMMARY ---
+Total Train Samples: 7200
+Total Val Samples: 3600
+Total Test Samples: 3600
+Class Distribution (Pedestrian vs No Pedestrian):
+has_pedestrian
+False    0.761389
+True     0.238611
+
+--- Clean EVALUATION ---
+Accuracy: 0.6280
+Recall: 0.3229
+
+--- TEMPERATURE SCALING ANALYSIS ---
+T	Accuracy
+0.5	0.6280
+1.0	0.6280
+2.0	0.6280
+
+Safety constraint (theta=0.6):
+Most triggers at T=0.5 (116 images)
+Least triggers at T=2.0 (65 images)
+Least safe temperature: T=0.5 (Overconfident, potential for more confident misses)
+
+--- Poisoned-on-Clean EVALUATION ---
+Accuracy: 0.7780
+Recall: 0.0000
+
+--- BACKDOOR ATTACK SUMMARY ---
+Attack Success Rate (ASR): 0.9950
