@@ -1,0 +1,10 @@
+Condition,Model,Accuracy,Precision,Recall,F1
+fog,pedestrian,0.7880,0.0000,0.0000,0.0000
+fog,traffic_light,0.8400,0.9294,0.8417,0.8834
+fog,vehicle,0.7700,0.8735,0.8049,0.8378
+night,pedestrian,0.7900,0.0000,0.0000,0.0000
+night,traffic_light,0.3820,0.9273,0.1433,0.2482
+night,vehicle,0.7940,0.8126,0.9564,0.8787
+town-01,pedestrian,0.8440,0.0385,0.0185,0.0250
+town-01,traffic_light,0.8000,0.8534,0.8584,0.8559
+town-01,vehicle,0.6620,0.7609,0.6055,0.6744
