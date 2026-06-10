@@ -45,3 +45,6 @@ env/
 *.egg-info/
 dist/
 build/
+
+# Private
+EXPLAINER_README.md
