@@ -541,16 +541,19 @@ This confirms that the models have overfit to the specific visual characteristic
 ## Exercise Sheet 9 — Anomaly Detection
 
 ### Exercise 9.1: The OOD Problem
-1. **Why standard classifiers fail**: Standard classifiers (like the ResNet18 trained here) are optimized to minimize loss on a closed-set ID distribution. When presented with OOD data, they still map the input to the known classes and often output high softmax probabilities due to the exponential nature of the softmax function. They suffer from overconfidence and are not trained to "know what they don't know".
-2. **Silent vs. Uncertain Failure**: Silent failure (making a confidently wrong prediction) causes the system to act erroneously without triggering fallbacks, which in an autonomous vehicle can directly lead to a catastrophic crash. Uncertain failure (low confidence) allows the system to recognize its limitations and trigger a safe fallback (e.g., handing over control to the driver or performing an emergency stop).
+1. **Why standard classifiers fail**: Standard neural network classifiers map any input—regardless of its origin—into the predefined output classes. Because the softmax function normalizes logits to sum to 1, the model is forced to assign high probabilities to at least one class, even if the input is entirely noise or from an unseen domain. Since the model was only trained to minimize loss on the in-distribution (ID) data, it does not explicitly learn a boundary or representation for "unknown" or "out-of-distribution." Consequently, it often outputs arbitrarily high confidences for inputs that lie far away from the training manifold (the overconfidence problem), rendering the raw softmax score untrustworthy as an OOD signal.
+2. **Silent vs. Uncertain Failure**: In safety-critical domains like autonomous driving, a "silent failure" means the perception system encounters an unknown scenario (e.g., a heavily fog-obscured pedestrian) but confidently misclassifies it (e.g., as empty road). Because the system reports high confidence, downstream planners will blindly trust this perception and maintain high speeds, leading to a catastrophic collision. Conversely, an "uncertain failure" means the system correctly identifies that it does not understand the current input (low confidence or OOD flag). While this still represents a failure to perceive the environment, the uncertainty can trigger a safe fallback mechanism—such as slowing down, handing over control to a human driver, or executing an emergency stop—thus avoiding a catastrophe.
 
 ### Exercise 9.2: Baseline OOD Detection
-**Maximum Softmax Probability (MSP)**: The baseline OOD detection method uses the maximum predicted probability from the softmax layer as a confidence score. If the MSP is below a certain threshold, the input is flagged as OOD.
-- **Limitations**: Neural networks often produce overconfident predictions even for completely unrecognizable or OOD inputs (the overconfidence problem), meaning MSP is often not a reliable indicator of whether an input is truly ID or OOD.
+**Maximum Softmax Probability (MSP)**: The baseline OOD detection method uses the highest predicted probability from the final softmax layer as a proxy for confidence. The intuition is that a well-calibrated model should exhibit lower confidence when evaluating anomalous inputs. To detect OOD data, we define a threshold $\tau$; if the MSP for a given input falls below $\tau$, it is flagged as OOD.
+- **Limitations**: 
+  1. *Inherent Overconfidence*: Deep networks using ReLU and softmax are mathematically prone to producing piecewise linear decision boundaries that project high activations for inputs far from the training data.
+  2. *Lack of Calibration*: Networks are optimized for accuracy on the ID set, not for calibrated probabilities. They often achieve high accuracy at the cost of extreme overconfidence on OOD inputs.
+  3. *Semantic Agnosticism*: MSP only looks at the final classification layer, ignoring the rich semantic representations in earlier layers.
 
 ### Exercise 9.3: Alternative Methods
-**Feature-based Methods (e.g., Mahalanobis distance or k-NN)**: These methods inspect the intermediate deep feature representations (e.g., the penultimate layer) rather than the final softmax output. They compute the distance between a test input's feature vector and the distribution of ID training features.
-- **Improvement over MSP**: Even if the final linear layer and softmax map an OOD input to a high probability, its intermediate feature representation usually lies far away from the training data manifold. Distance-based methods effectively detect this anomaly in the feature space.
+**Feature-based Methods (e.g., Mahalanobis distance or k-NN)**: Instead of relying on the final softmax output, these methods inspect the deep, intermediate feature representations (e.g., the penultimate layer). During training, we compute the distribution of ID features. At inference, we extract the test input's deep feature vector and compute its distance to the training feature distribution. If this distance exceeds a threshold, the input is flagged as OOD.
+- **Improvement over MSP**: Softmax logits can be easily saturated, hiding anomalies. Deep feature spaces capture a rich, high-dimensional representation. An OOD image might accidentally trigger a high softmax score due to a spurious edge, but its fundamental feature vector will almost certainly lie far away from the tight clusters of ID training data. Distance-based methods effectively detect this anomaly in the feature space.
 
 ### Exercise 9.4: Visualising the Distribution Shift
 The provided test data includes clear OOD shifts like Fog and Night. 
@@ -564,12 +567,14 @@ The provided test data includes clear OOD shifts like Fog and Night.
 | Traffic Light | 0.6717 | 0.6434 | 0.5584 |
 | Vehicle | 0.6428 | 0.6494 | 0.6891 |
 
-The pedestrian and traffic light models show a decrease in mean confidence for OOD data. However, the vehicle model actually shows *higher* confidence on night data, highlighting the unreliability of raw confidence scores across different distribution shifts.
+**Analysis**: The empirical results reveal that distribution shifts heavily impact model confidence, but in unpredictable ways. The pedestrian and traffic light models exhibit the expected behavior: their mean confidence drops noticeably when exposed to Fog and Night domains. However, the vehicle model demonstrates a concerning phenomenon: its mean confidence *increases* on the Night dataset (0.6891) compared to the Clean ID dataset (0.6428). This indicates that the vehicle model has likely latched onto spurious features specific to nighttime (e.g., bright taillights or specular reflections) that artificially inflate its confidence. This severe inconsistency across models highlights the fundamental unreliability of raw softmax scores as an OOD metric.
 
 ### Exercise 9.5: Is the Different Town Out-of-Distribution?
-1. **Current ODD (from Ex 2.2)**: Our previous ODD specification for Scene Type was "Urban environment, marked roads" vs "Off-road, construction zones, unmarked roads". This does *not* clearly exclude a different town with nominal weather/lighting, meaning the different-town images could technically be considered ID based on the loose wording.
-2. **Revised ODD**: The ODD should be restricted to the specific geographic areas or specific structural typologies present in the training set (e.g., "Urban environment matching Town-X architecture"). If the training set is not globally diverse, the ODD must explicitly bound the geographic/architectural domain.
-3. **Implication**: If we consider the new town as ID (handling it correctly), we must augment our training data to include diverse towns. If we consider it OOD, the system's OOD monitor must be able to flag unfamiliar town layouts as unsafe.
+1. **Current ODD Ambiguity**: In Exercise 2.2, the Operational Design Domain (ODD) for Scene Type was defined simply as "Urban environment, marked roads" as opposed to "Off-road, construction zones, unmarked roads". Under this broad definition, the different-town images—which feature nominal weather, clear lighting, and marked urban roads—would technically be considered In-Distribution (ID). However, the specific architectural layouts, building types, and vegetation in this new town were never seen during training, representing a clear semantic shift.
+2. **Revised ODD**: To eliminate this ambiguity, the ODD must explicitly bound the geographic and structural domain.
+   *Revised ODD Definition*: "Urban environments matching the specific architectural typologies, road geometries, and vegetation profiles present in CARLA Town-10 (the training environment)."
+   *Justification*: Machine learning models do not inherently generalize to new geographic locations. By explicitly restricting the ODD to known towns, we mathematically align the operational constraints with the true statistical distribution of the training data.
+3. **Implication**: By defining the new town as OOD, we are explicitly stating that our perception system is not certified to operate there. Therefore, the system's OOD monitor must be sensitive enough to detect subtle architectural shifts (not just extreme weather shifts) and flag unfamiliar town layouts as unsafe. If we instead chose to define the new town as ID, we would be obligated to heavily augment our training dataset with highly diverse, multi-city data to ensure generalization.
 
 ### Exercise 9.6: Evaluating the MSP Baseline
 Using the Pedestrian model:
@@ -580,7 +585,7 @@ Using the Pedestrian model:
 - **ID vs Night**: 0.9465
 - **ID vs Town-01**: 0.4234
 
-The MSP baseline performs decently for extreme shifts like Night (0.9465), but completely fails for subtler domain shifts like Town-01, where it performs worse than random guessing (0.4234).
+**Analysis**: The AUROC metric evaluates the probability that an OOD detector will assign a higher anomaly score to a random OOD sample than an ID sample. A perfect detector scores 1.0, while a random baseline scores 0.5. The MSP baseline performs reasonably well for extreme shifts like Night (0.9465), where darkness naturally drops confidence. However, it completely fails for subtler domain shifts like Town-01, where it performs worse than random guessing (0.4234). Because the weather is clear, the model sees sharp features and outputs maximum confidence despite the semantic layout being entirely foreign, proving MSP cannot detect semantic domain shifts.
 
 ### Exercise 9.7: Feature-Based OOD Detection
 Using $k$-Nearest Neighbors on the `layer4` features of the ResNet18 model:
@@ -591,12 +596,22 @@ Using $k$-Nearest Neighbors on the `layer4` features of the ResNet18 model:
 | **Night** | 0.9465 | 0.9972 | +0.0507 |
 | **Town-01** | 0.4234 | 0.5767 | +0.1533 |
 
-The $k$-NN feature-based detector improves OOD detection across all scenarios, with the largest gap (+0.1533) observed on the Town-01 dataset, demonstrating that feature space distances can detect semantic domain shifts that the final softmax layer misses.
+**Analysis**: By transitioning to a feature-based $k$-NN detector, we observe consistent improvements across all distribution shifts. The most critical finding is the massive +0.1533 AUROC improvement on the Town-01 dataset (from 0.4234 to 0.5767). While still not perfect, this demonstrates the core theoretical advantage of feature-based methods: even when the final classification layer is "tricked" into outputting a high confidence score by clear lighting, the intermediate feature vector of the unfamiliar town lies structurally distant from the training data manifold in the 512-dimensional feature space. The $k$-NN distance accurately captures this structural discrepancy.
 
 ### Exercise 9.8: Extending the Safety Analysis for OOD
-1. **Hazard**: *H-4: System remains in autonomous mode outside defined ODD*. This captures operating on undetected OOD inputs.
-2. **Unsafe Control Action (UCA)**: *UCA-7: The planner executes a high-speed maneuver (e.g., continue at speed limit) when the perception output is untrustworthy due to an undetected out-of-distribution environment.* This links directly to H-4 and potentially H-1/H-2 if an obstacle is missed.
+Revisiting the System-Theoretic Process Analysis (STPA) from Exercise Sheet 2, we must explicitly incorporate the risks posed by out-of-distribution data.
+
+1. **Hazard Identification**: 
+   - *Refined Hazard H-4*: "The autonomous vehicle continues nominal high-speed operation while processing sensory input that originates from outside its trained Operational Design Domain (OOD data), resulting in untrustworthy perception."
+   - *Justification*: This directly addresses the risk of silent perception failures acting as a root cause for vehicle-level hazards (e.g. failing to brake).
+2. **Unsafe Control Action (UCA)**: 
+   - *UCA-OOD-1*: "The Path Planner provides an 'Accelerate' or 'Maintain Speed' command to the Actuators when the camera input is significantly degraded (e.g., fog) or geographically novel (e.g., new town) AND the perception system fails to detect and flag this distribution shift."
+   - *Link*: This UCA leads directly to Hazard H-4 and inevitably results in collisions.
 3. **Safety Constraints**:
-   - **Model-level**: The perception system must include an OOD monitor (e.g., $k$-NN feature distance) that accurately flags inputs originating outside the training distribution.
-   - **System-level**: If the OOD monitor flags the current environment as out-of-distribution, the planner must immediately initiate a safe fallback (e.g., slow down and alert the human driver).
-4. **Residual Risk**: Even with a perfect OOD detector, there is a risk that the human operator fails to take over in time after the OOD alert, or the safe fallback maneuver itself causes a collision due to sudden braking. Furthermore, OOD detectors cannot guarantee detection of *every* possible anomaly (e.g., adversarial attacks).
+   - **Model-level Constraint**: "The perception subsystem must execute a feature-space OOD monitor (e.g., Mahalanobis distance or $k$-NN) alongside the primary classifier. This monitor must evaluate every incoming frame and assert an `OOD_FLAG=True` if the feature distance exceeds a rigorously calibrated threshold."
+   - **System-level Constraint**: "The Path Planner must never issue a nominal driving command if the `OOD_FLAG` is asserted. Upon receiving an `OOD_FLAG`, the planner must immediately initiate a degraded-mode fallback maneuver (e.g., smooth deceleration to a stop and handover request to the human operator)."
+4. **Residual Risk Analysis**:
+   Even with a perfectly calibrated feature-based OOD detector, critical residual risks remain:
+   - **The Fallback Hazard**: The safe fallback maneuver itself (e.g., sudden braking in dense fog) might induce a rear-end collision from following human drivers.
+   - **Human-in-the-Loop Latency**: If the system relies on a handover request, the human operator may be distracted or unable to regain situational awareness fast enough to prevent an accident.
+   - **Adversarial & ID Anomalies**: An OOD detector only flags data that is statistically distant from the training set. It will not catch adversarial attacks engineered to lie exactly on the training manifold, nor will it catch highly specific, rare "black swan" events that happen to share features with normal data. Thus, OOD detection is a necessary, but entirely insufficient, condition for total system safety.
