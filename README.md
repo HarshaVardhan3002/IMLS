@@ -604,16 +604,15 @@ Using $k$-Nearest Neighbors on the `layer4` features of the ResNet18 model:
 Revisiting the System-Theoretic Process Analysis (STPA) from Exercise Sheet 2, we must explicitly incorporate the risks posed by out-of-distribution data.
 
 1. **Hazard Identification**: 
-   - *Refined Hazard H-4*: "The autonomous vehicle continues nominal high-speed operation while processing sensory input that originates from outside its trained Operational Design Domain (OOD data), resulting in untrustworthy perception."
-   - *Justification*: This directly addresses the risk of silent perception failures acting as a root cause for vehicle-level hazards (e.g. failing to brake).
+   - *Refined Hazard H-4*: "The vehicle fails to brake for a pedestrian or obstacle because the perception system processes an undetected out-of-ODD input (e.g. fog or a novel town), resulting in a confidently wrong prediction."
+   - *Justification*: Standard hazard lists often only say "Vehicle fails to brake." We explicitly add the root cause (undetected OOD input) to capture the unique threat posed by ML silent failures.
 2. **Unsafe Control Action (UCA)**: 
-   - *UCA-OOD-1*: "The Path Planner provides an 'Accelerate' or 'Maintain Speed' command to the Actuators when the camera input is significantly degraded (e.g., fog) or geographically novel (e.g., new town) AND the perception system fails to detect and flag this distribution shift."
-   - *Link*: This UCA leads directly to Hazard H-4 and inevitably results in collisions.
+   - *UCA-OOD-1*: "The Path Planner provides an 'Accelerate' or 'Maintain Speed' command to the Actuators while the camera input is out-of-ODD and the perception output is untrustworthy, but this is not detected."
+   - *Link*: This UCA leads directly to Hazard H-4 (failing to brake for an obstacle), inevitably resulting in collisions.
 3. **Safety Constraints**:
-   - **Model-level Constraint**: "The perception subsystem must execute a feature-space OOD monitor (e.g., Mahalanobis distance or $k$-NN) alongside the primary classifier. This monitor must evaluate every incoming frame and assert an `OOD_FLAG=True` if the feature distance exceeds a rigorously calibrated threshold."
-   - **System-level Constraint**: "The Path Planner must never issue a nominal driving command if the `OOD_FLAG` is asserted. Upon receiving an `OOD_FLAG`, the planner must immediately initiate a degraded-mode fallback maneuver (e.g., smooth deceleration to a stop and handover request to the human operator)."
+   - **Model-level Constraint**: "The perception subsystem must execute a feature-space OOD monitor alongside the primary classifier to flag incoming out-of-distribution frames."
+     - *Justification by Severity*: Because Hazard H-4 involves high-speed collisions with pedestrians (a catastrophic, high-severity hazard), the OOD monitor must be highly sensitive and calibrated to a near-100% True Positive Rate for anomalies, prioritizing safety over false alarms.
+   - **System-level Constraint**: "Upon receiving an `OOD_FLAG` from the perception model, the planner must never issue a nominal driving command. It must immediately initiate a safe fallback response (e.g., smooth deceleration to a stop and a handover request to the human operator)."
 4. **Residual Risk Analysis**:
-   Even with a perfectly calibrated feature-based OOD detector, critical residual risks remain:
-   - **The Fallback Hazard**: The safe fallback maneuver itself (e.g., sudden braking in dense fog) might induce a rear-end collision from following human drivers.
-   - **Human-in-the-Loop Latency**: If the system relies on a handover request, the human operator may be distracted or unable to regain situational awareness fast enough to prevent an accident.
-   - **Adversarial & ID Anomalies**: An OOD detector only flags data that is statistically distant from the training set. It will not catch adversarial attacks engineered to lie exactly on the training manifold, nor will it catch highly specific, rare "black swan" events that happen to share features with normal data. Thus, OOD detection is a necessary, but entirely insufficient, condition for total system safety.
+   - *Does detecting OOD fully address the UCA and hazard?* No. Even with a perfect OOD detector, significant residual risks remain.
+   - *Remaining Risks*: First, the safe fallback maneuver itself (e.g., sudden braking in dense fog) might induce a rear-end collision from following vehicles. Second, if relying on human handover, the driver may suffer from latency or lack of situational awareness, failing to take over in time. Finally, an OOD detector will not catch "in-distribution anomalies" (rare black-swan events that share statistical features with training data but require unique semantic handling).
