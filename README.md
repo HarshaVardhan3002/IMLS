@@ -579,24 +579,26 @@ The provided test data includes clear OOD shifts like Fog and Night.
 ### Exercise 9.6: Evaluating the MSP Baseline
 Using the Pedestrian model:
 ![MSP Distributions](results/exercise_7/msp_distributions.png)
+![MSP ROC Curves](results/exercise_7/msp_roc_curves.png)
 
 **AUROC for MSP Baseline:**
-- **ID vs Fog**: 0.6458
-- **ID vs Night**: 0.9465
-- **ID vs Town-01**: 0.4234
+- **ID vs Fog**: 0.6479
+- **ID vs Night**: 0.9606
+- **ID vs Town-01**: 0.4172
+- **ID vs All OOD Combined**: 0.6752
 
-**Analysis**: The AUROC metric evaluates the probability that an OOD detector will assign a higher anomaly score to a random OOD sample than an ID sample. A perfect detector scores 1.0, while a random baseline scores 0.5. The MSP baseline performs reasonably well for extreme shifts like Night (0.9465), where darkness naturally drops confidence. However, it completely fails for subtler domain shifts like Town-01, where it performs worse than random guessing (0.4234). Because the weather is clear, the model sees sharp features and outputs maximum confidence despite the semantic layout being entirely foreign, proving MSP cannot detect semantic domain shifts.
+**Analysis**: The AUROC metric evaluates the probability that an OOD detector will assign a higher anomaly score to a random OOD sample than an ID sample. A perfect detector scores 1.0, while a random baseline scores 0.5. The ROC curves plot illustrates the True Positive Rate vs False Positive Rate across all thresholds. The MSP baseline performs reasonably well for extreme shifts like Night (0.9606), where darkness naturally drops confidence. However, it completely fails for subtler domain shifts like Town-01, where it performs worse than random guessing (0.4172). Because the weather is clear, the model sees sharp features and outputs maximum confidence despite the semantic layout being entirely foreign, proving MSP cannot detect semantic domain shifts.
 
 ### Exercise 9.7: Feature-Based OOD Detection
 Using $k$-Nearest Neighbors on the `layer4` features of the ResNet18 model:
 
 | OOD Scenario | MSP AUROC | k-NN AUROC | Gap |
 |---|---|---|---|
-| **Fog** | 0.6458 | 0.6526 | +0.0069 |
-| **Night** | 0.9465 | 0.9972 | +0.0507 |
-| **Town-01** | 0.4234 | 0.5767 | +0.1533 |
+| **Fog** | 0.6479 | 0.6337 | -0.0141 |
+| **Night** | 0.9606 | 0.9979 | +0.0373 |
+| **Town-01** | 0.4172 | 0.5669 | +0.1497 |
 
-**Analysis**: By transitioning to a feature-based $k$-NN detector, we observe consistent improvements across all distribution shifts. The most critical finding is the massive +0.1533 AUROC improvement on the Town-01 dataset (from 0.4234 to 0.5767). While still not perfect, this demonstrates the core theoretical advantage of feature-based methods: even when the final classification layer is "tricked" into outputting a high confidence score by clear lighting, the intermediate feature vector of the unfamiliar town lies structurally distant from the training data manifold in the 512-dimensional feature space. The $k$-NN distance accurately captures this structural discrepancy.
+**Analysis**: By transitioning to a feature-based $k$-NN detector, we observe critical improvements in semantic distribution shifts. The most important finding is the massive +0.1497 AUROC improvement on the Town-01 dataset (from 0.4172 to 0.5669). While still not perfect, this demonstrates the core theoretical advantage of feature-based methods: even when the final classification layer is "tricked" into outputting a high confidence score by clear lighting, the intermediate feature vector of the unfamiliar town lies structurally distant from the training data manifold in the 512-dimensional feature space. The $k$-NN distance accurately captures this structural discrepancy. The slight performance regression on Fog (-0.0141) indicates that for unstructured pixel noise, simple softmax degradation can sometimes be as effective as deep feature distance.
 
 ### Exercise 9.8: Extending the Safety Analysis for OOD
 Revisiting the System-Theoretic Process Analysis (STPA) from Exercise Sheet 2, we must explicitly incorporate the risks posed by out-of-distribution data.

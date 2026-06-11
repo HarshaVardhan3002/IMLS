@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, Subset
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, roc_curve
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -178,20 +178,54 @@ def exercise_7_6(model: nn.Module, save_dir: str):
     plt.close()
     print(f"  Saved distributions plot -> {dist_path}")
     
-    # 2. Compute AUROC
+    # 2. Compute AUROC and Plot ROC curves
     print("\n  AUROC for MSP Baseline (score = 1 - MSP):")
     auroc_results = {}
+    
+    plt.figure(figsize=(8, 6))
+    
+    all_ood_scores = []
+    
     for ood_name in ood_names:
         id_scores = 1.0 - id_msps
         ood_scores = 1.0 - msp_results[ood_name]
+        
+        all_ood_scores.extend(ood_scores)
         
         y_true = np.concatenate([np.zeros(len(id_scores)), np.ones(len(ood_scores))])
         y_scores = np.concatenate([id_scores, ood_scores])
         
         auroc = roc_auc_score(y_true, y_scores)
+        fpr, tpr, _ = roc_curve(y_true, y_scores)
+        
         auroc_results[ood_name] = auroc
         print(f"    ID vs {ood_name}: {auroc:.4f}")
+        plt.plot(fpr, tpr, lw=2, label=f'{ood_name} (AUROC = {auroc:.4f})')
         
+    # Combine all OOD scenarios
+    all_ood_scores = np.array(all_ood_scores)
+    y_true_all = np.concatenate([np.zeros(len(id_scores)), np.ones(len(all_ood_scores))])
+    y_scores_all = np.concatenate([id_scores, all_ood_scores])
+    auroc_all = roc_auc_score(y_true_all, y_scores_all)
+    fpr_all, tpr_all, _ = roc_curve(y_true_all, y_scores_all)
+    
+    print(f"    ID vs All OOD Combined: {auroc_all:.4f}")
+    plt.plot(fpr_all, tpr_all, lw=2, color='black', linestyle='--', label=f'All OOD Combined (AUROC = {auroc_all:.4f})')
+    
+    plt.plot([0, 1], [0, 1], color='gray', lw=1, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve: MSP Baseline')
+    plt.legend(loc="lower right")
+    plt.grid(alpha=0.3)
+    
+    roc_path = os.path.join(save_dir, "msp_roc_curves.png")
+    plt.savefig(roc_path, dpi=150)
+    plt.close()
+    print(f"  Saved ROC curves plot -> {roc_path}")
+    
     return auroc_results
 
 # ---------------------------------------------------------------------------
