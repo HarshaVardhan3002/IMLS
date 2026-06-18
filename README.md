@@ -569,7 +569,10 @@ We generated Fast Gradient Sign Method (FGSM) attacks against our three CARLA cl
 - At \(\epsilon = 0.05\) they appear as slight noise. 
 - At \(\epsilon = 0.10\) the noise is very visible and unnatural.
 
-![Adversarial Samples](results/exercise_8/fgsm_samples_pedestrian_eps_0.1.png)
+#### Adversarial Progression (Pedestrian Model)
+![Adversarial eps=0.01](results/exercise_8/fgsm_samples_pedestrian_eps_0.01.png)
+![Adversarial eps=0.05](results/exercise_8/fgsm_samples_pedestrian_eps_0.05.png)
+![Adversarial eps=0.10](results/exercise_8/fgsm_samples_pedestrian_eps_0.1.png)
 
 | Model | Clean | eps=0.01 | eps=0.05 | eps=0.10 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -579,14 +582,30 @@ We generated Fast Gradient Sign Method (FGSM) attacks against our three CARLA cl
 
 **Analysis**: Adversarial perturbations severely degrade model performance, dropping recall to near 0 for larger epsilons.
 
-### Exercise 8.6: Extending the Safety Analysis for Adversarial Robustness
-Revisiting the System-Theoretic Process Analysis (STPA) from Exercise Sheet 2:
-1. **Hazard**: "Degraded perception output due to adversarial manipulation of sensor inputs (e.g., adversarial patches on signs or vehicles)."
-2. **Unsafe control action**: "The planner continues at speed because the vehicle detector fails to detect a car ahead due to an adversarial perturbation, and the system fails to detect the attack."
-3. **Safety constraints**:
-   - **Model-level**: "The vehicle detector must maintain > 70% recall against bounded adversarial perturbations up to \(\epsilon = 0.05\)."
-   - **System-level**: "The system must employ multiple redundant sensing modalities (e.g., LiDAR, Radar) that are not susceptible to the same camera-based adversarial attacks, and trigger a safe stop if modalities disagree."
-4. **Residual risk**: Adversarial training only protects against the specific attacks and budgets seen during training. The risk of novel attacks (different norm bounds or larger \(\epsilon\)) or physical attacks (adversarial patches) remains. Redundant sensors are necessary.
+### Exercise 8.6: Project-Wide Comprehensive Safety Report (STPA Integration)
+*(Continuing from the Anomaly Detection analysis in Exercise 9.8)*
+
+This comprehensive report synthesizes the cumulative safety findings across all modules (STPA, Empirical Testing, Data Poisoning, Explainability, Anomaly Detection, and Adversarial Robustness) into a unified safety posture for the CARLA perception system.
+
+**1. Unified Hazard Identification & Root Causes**
+The fundamental hazard (H-4) identified in STPA was **"The vehicle fails to brake for a pedestrian or obstacle, resulting in a collision."** Across the project, we have empirically proven that this single hazard can be triggered by multiple orthogonal ML failure modes:
+- **Distribution Shift (Exercise 4 & 9)**: The ODD coverage analysis (Ex 4.5) proved our test set is inadequate. When exposed to fog or a new town layout, the vehicle model's confidence arbitrarily *increased* while accuracy plummeted. Maximum Softmax Probability (MSP) failed to detect semantic shifts (AUROC 0.4172).
+- **Data Poisoning (Exercise 5)**: A backdoor attack successfully forced the model to ignore pedestrians when a simple 10x10 trigger was present, bypassing standard validation checks.
+- **Spurious Correlations (Exercise 6)**: Explainability maps (CAM/Occlusion) revealed models were sometimes relying on the sky or background architecture rather than the pedestrian, explaining the catastrophic failures in Town-01.
+- **Adversarial Perturbations (Exercise 8)**: Even imperceptible noise (\(\epsilon = 0.01\)) cut the Vehicle model's recall by over 35%, and \(\epsilon=0.10\) reduced all models to near 0% recall.
+
+**2. Unified Unsafe Control Actions (UCA)**
+- *UCA-System-1*: The Path Planner commands "Maintain Speed" because the perception subsystem outputs a false negative (due to adversarial attack, backdoor trigger, or out-of-distribution domain) AND the system fails to quantify this uncertainty.
+
+**3. Comprehensive Safety Constraints & Architecture**
+To mitigate these cascading failure modes, the system architecture must enforce a defense-in-depth strategy:
+- **Constraint 1 (Feature-Based Anomaly Detection)**: As proven in Ex 9.7, the system MUST run a \(k\)-NN feature-based OOD monitor to catch semantic shifts (like new towns) that fool raw softmax scores.
+- **Constraint 2 (Adversarial Robustness)**: The primary classifiers must undergo adversarial training to guarantee a minimum recall bound against bounded adversarial perturbations (\(\epsilon \le 0.05\)), neutralizing FGSM and similar bounded gradient attacks.
+- **Constraint 3 (Multi-Modal Consensus)**: Because camera models are inherently vulnerable to patches (Ex 5) and pixel noise (Ex 8), the planner MUST require consensus between the visual classifiers and a structurally different sensor (e.g., LiDAR or Radar) before approving acceleration in populated zones.
+- **Constraint 4 (Continuous ODD Monitoring)**: Since our static test set lacks combinatorial ODD coverage (Ex 4.5), the vehicle must employ runtime monitors to detect environmental drift (e.g., contrast drops indicating fog) and trigger a safe fallback (speed reduction) before the perception model fails.
+
+**4. Residual Risk Statement**
+Despite implementing feature-based OOD detection, adversarial training, and multi-modal fusion, residual risks remain. The system cannot provably guarantee safety against unbounded physical adversarial attacks (e.g., structurally printed adversarial pedestrians) or novel sensor-fusion attacks. Therefore, human-in-the-loop oversight or low-speed operational constraints remain mandatory for full deployment.
 
 ## Exercise Sheet 9 — Anomaly Detection
 
