@@ -656,10 +656,11 @@ The selected temperatures also reveal the direction of calibration adjustment. $
 **Numeric output:** [`results/exercise_7_uncertainty/uncertainty_results.json`](results/exercise_7_uncertainty/uncertainty_results.json)
 
 ### Exercise 7.6: Cost-Optimal Decision in Practice
-Using $C_{FN}=100$, $C_{FP}=1$, and $\tau^*=0.0099$, the pedestrian classifier was evaluated on the in-distribution test set. The total loss is:
+
+Using $C_{\text{FN}}=100$, $C_{\text{FP}}=1$, and $\tau^*=0.0099$, the pedestrian classifier was evaluated on the in-distribution test set. The total loss is:
 
 $$
-L = C_{FN}\cdot\#FN + C_{FP}\cdot\#FP
+L = C_{\text{FN}} \cdot \#\text{FN} + C_{\text{FP}} \cdot \#\text{FP}
 $$
 
 | Model output | $\tau=0.5$ | $\tau=\tau^*=0.0099$ |
