@@ -1,12 +1,12 @@
 """
-Exercise 8 continuation - Uncertainty Quantification.
+Exercise 7 - Uncertainty Quantification.
 
 Computes calibration metrics, optimizes temperature scaling on the validation
 set, plots reliability diagrams, and evaluates the cost-optimal pedestrian
 decision threshold.
 
 Usage:
-    python -m exercises.ex8b_uncertainty_quantification
+    python -m exercises.ex7_uncertainty_quantification
 """
 
 from __future__ import annotations
@@ -226,7 +226,7 @@ def plot_costs(cost_results: dict, save_path: str) -> None:
 
 
 def main() -> None:
-    save_dir = os.path.join(RESULTS_DIR, "exercise_8")
+    save_dir = os.path.join(RESULTS_DIR, "exercise_7_uncertainty")
     os.makedirs(save_dir, exist_ok=True)
 
     summary: dict = {}
