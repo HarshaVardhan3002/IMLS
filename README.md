@@ -317,7 +317,7 @@ Results from Exercise 3 (see table above). **Lowest recall: Pedestrian** (0.1596
 | 2-Projection | 58.33% |
 | 3-Projection | 47.06% |
 
-**Analysis**: The coverage drops significantly as \(k\) increases. A single testing scenario (representing the clear daytime urban environment) only covers a small slice of the combinatorial space of dimensions. This demonstrates that the test set is highly inadequate for high \(k\)-projection coverage of the full ODD.
+**Analysis**: The coverage drops significantly as $k$ increases. A single testing scenario (representing the clear daytime urban environment) only covers a small slice of the combinatorial space of dimensions. This demonstrates that the test set is highly inadequate for high $k$-projection coverage of the full ODD.
 
 ## Exercise Sheet 5 — Testing LLMs, Calibration & Backdoor Attacks
 
@@ -575,15 +575,15 @@ A classifier is **well-calibrated** when its stated confidence matches empirical
 
 The Expected Calibration Error (ECE) measures the average mismatch between confidence and accuracy:
 
-\[
+$$
 \mathrm{ECE} = \sum_{m=1}^{M}\frac{|B_m|}{n}\left|\mathrm{acc}(B_m)-\mathrm{conf}(B_m)\right|
-\]
+$$
 
 The computation is:
 
 1. Convert each output into a predicted class and a confidence score.
-2. Split predictions into confidence bins, for example 10 bins over \([0, 1]\).
-3. For each bin \(B_m\), compute the empirical accuracy and the mean confidence.
+2. Split predictions into confidence bins, for example 10 bins over $[0, 1]$.
+3. For each bin $B_m$, compute the empirical accuracy and the mean confidence.
 4. Weight each absolute gap by the fraction of samples in that bin.
 
 Low ECE means the model's confidence is aligned with observed accuracy on average. The diagonal in a reliability diagram represents perfect calibration: a bin with mean confidence 0.8 should have about 80% accuracy. Bars below the diagonal indicate overconfidence, because the model claims more certainty than its empirical correctness supports. Bars above the diagonal indicate underconfidence.
@@ -591,38 +591,38 @@ Low ECE means the model's confidence is aligned with observed accuracy on averag
 ECE is useful because it turns reliability diagrams into a single number, but it is not sufficient by itself. It can hide failures in a small subgroup, it depends on the binning scheme, and it treats all samples according to frequency rather than safety severity. For a pedestrian detector, a rare high-confidence false negative can be much more important than the average ECE suggests.
 
 ### Exercise 7.3: Cost-Optimal Downstream Decisions
-For the pedestrian detector, let \(p = p(\mathrm{pedestrian}\mid x)\). The two possible actions have asymmetric costs:
+For the pedestrian detector, let $p = p(\mathrm{pedestrian}\mid x)$. The two possible actions have asymmetric costs:
 
 | Action | Pedestrian present | No pedestrian |
 |---|---:|---:|
-| Brake | 0 | \(C_{FP}=1\) |
-| Continue | \(C_{FN}=100\) | 0 |
+| Brake | 0 | $C_{FP}=1$ |
+| Continue | $C_{FN}=100$ | 0 |
 
 The expected losses are:
 
-\[
+$$
 E[L \mid \mathrm{brake}] = (1-p)C_{FP} = 1-p
-\]
+$$
 
-\[
+$$
 E[L \mid \mathrm{continue}] = pC_{FN} = 100p
-\]
+$$
 
-At the optimal threshold \(\tau^*\), both actions have equal expected loss:
+At the optimal threshold $\tau^*$, both actions have equal expected loss:
 
-\[
+$$
 1-p = 100p
-\]
+$$
 
-\[
+$$
 \tau^* = p = \frac{1}{101} \approx 0.0099
-\]
+$$
 
-So the autopilot should brake whenever \(p > 0.0099\), meaning whenever the calibrated pedestrian probability is above roughly 1%. This is much more conservative than the standard argmax rule \(\tau = 0.5\). The reason is safety asymmetry: a false negative pedestrian miss is assigned 100 times the cost of a false positive brake. In other words, the planner should accept many unnecessary brakes if that is the price of avoiding even a small number of missed pedestrians.
+So the autopilot should brake whenever $p > 0.0099$, meaning whenever the calibrated pedestrian probability is above roughly 1%. This is much more conservative than the standard argmax rule $\tau = 0.5$. The reason is safety asymmetry: a false negative pedestrian miss is assigned 100 times the cost of a false positive brake. In other words, the planner should accept many unnecessary brakes if that is the price of avoiding even a small number of missed pedestrians.
 
-This threshold is only optimal if \(p\) is well-calibrated. If the model is overconfident, a true pedestrian might receive an extremely low probability such as \(p=0.002\), causing the planner to continue even though the real miss probability is much higher. Conversely, overconfident false positives can cause excessive braking. The cost calculation assumes probabilities are meaningful; miscalibration breaks that assumption.
+This threshold is only optimal if $p$ is well-calibrated. If the model is overconfident, a true pedestrian might receive an extremely low probability such as $p=0.002$, causing the planner to continue even though the real miss probability is much higher. Conversely, overconfident false positives can cause excessive braking. The cost calculation assumes probabilities are meaningful; miscalibration breaks that assumption.
 
-The threshold should also not be confused with a complete driving policy. Braking at 1% pedestrian probability is rational under the simplified cost table, but real vehicles also need comfort, rear-end-collision risk, traffic-flow constraints, and temporal smoothing. The value of \(\tau^*\) is that it shows why a safety-critical classifier should not blindly use \(\tau=0.5\).
+The threshold should also not be confused with a complete driving policy. Braking at 1% pedestrian probability is rational under the simplified cost table, but real vehicles also need comfort, rear-end-collision risk, traffic-flow constraints, and temporal smoothing. The value of $\tau^*$ is that it shows why a safety-critical classifier should not blindly use $\tau=0.5$.
 
 ### Exercise 7.4: Measuring Calibration
 ECE was computed on the in-distribution test set for all three saved CARLA classifiers. The reliability diagrams show empirical accuracy per confidence bin. Bars below the diagonal indicate overconfidence; bars above the diagonal indicate underconfidence.
@@ -640,38 +640,38 @@ The pattern is not perfectly consistent across all three models. All models show
 The reliability diagram also shows why visual inspection is useful. The pedestrian model has bins where empirical accuracy is above confidence and bins where it is below confidence, so a single ECE number compresses several different local behaviors. For safety arguments, both the ECE value and the diagram should be reported.
 
 ### Exercise 7.5: Temperature Scaling
-Temperature scaling was applied by converting each sigmoid output back to a logit, dividing by \(T\), and applying the sigmoid again. The temperature was selected on the validation set by minimizing negative log-likelihood over \(T \in \{0.5, 0.6, \ldots, 3.0\}\).
+Temperature scaling was applied by converting each sigmoid output back to a logit, dividing by $T$, and applying the sigmoid again. The temperature was selected on the validation set by minimizing negative log-likelihood over $T \in \{0.5, 0.6, \ldots, 3.0\}$.
 
-| Model | Selected \(T\) | Validation NLL | ECE before | ECE after | Test NLL before | Test NLL after |
+| Model | Selected $T$ | Validation NLL | ECE before | ECE after | Test NLL before | Test NLL after |
 |---|---:|---:|---:|---:|---:|---:|
 | Pedestrian | 1.7 | 0.5729 | 0.0434 | 0.0671 | 0.5404 | 0.5382 |
 | Traffic Light | 0.9 | 0.1403 | 0.0355 | 0.0380 | 0.2973 | 0.3130 |
 | Vehicle | 1.2 | 0.4430 | 0.0564 | 0.0412 | 0.4826 | 0.4747 |
 
-Temperature scaling preserves the decision boundary at \(\tau=0.5\), so accuracy does not change. Its main effect is to soften or sharpen probabilities. In this run, it improved vehicle ECE and pedestrian NLL, but it did not uniformly improve ECE. This is not a contradiction: \(T\) was optimized for validation NLL, while ECE is a different test-set metric with binning effects. The result is a useful safety finding: post-hoc calibration must be verified, not assumed.
+Temperature scaling preserves the decision boundary at $\tau=0.5$, so accuracy does not change. Its main effect is to soften or sharpen probabilities. In this run, it improved vehicle ECE and pedestrian NLL, but it did not uniformly improve ECE. This is not a contradiction: $T$ was optimized for validation NLL, while ECE is a different test-set metric with binning effects. The result is a useful safety finding: post-hoc calibration must be verified, not assumed.
 
-The selected temperatures also reveal the direction of calibration adjustment. \(T>1\) softens logits and reduces confidence; this was selected for the pedestrian and vehicle models. \(T<1\) sharpens logits; this was selected for the traffic-light model, meaning the validation NLL slightly preferred more confident traffic-light probabilities. However, the traffic-light test NLL and ECE worsened after scaling, showing that validation-selected calibration can overfit or fail to transfer perfectly.
+The selected temperatures also reveal the direction of calibration adjustment. $T>1$ softens logits and reduces confidence; this was selected for the pedestrian and vehicle models. $T<1$ sharpens logits; this was selected for the traffic-light model, meaning the validation NLL slightly preferred more confident traffic-light probabilities. However, the traffic-light test NLL and ECE worsened after scaling, showing that validation-selected calibration can overfit or fail to transfer perfectly.
 
 **Code:** [`exercises/ex7_uncertainty_quantification.py`](exercises/ex7_uncertainty_quantification.py)  
 **Numeric output:** [`results/exercise_7_uncertainty/uncertainty_results.json`](results/exercise_7_uncertainty/uncertainty_results.json)
 
 ### Exercise 7.6: Cost-Optimal Decision in Practice
-Using \(C_{FN}=100\), \(C_{FP}=1\), and \(\tau^*=0.0099\), the pedestrian classifier was evaluated on the in-distribution test set. The total loss is:
+Using $C_{FN}=100$, $C_{FP}=1$, and $\tau^*=0.0099$, the pedestrian classifier was evaluated on the in-distribution test set. The total loss is:
 
-\[
+$$
 L = C_{FN}\cdot\#FN + C_{FP}\cdot\#FP
-\]
+$$
 
-| Model output | \(\tau=0.5\) | \(\tau=\tau^*=0.0099\) |
+| Model output | $\tau=0.5$ | $\tau=\tau^*=0.0099$ |
 |---|---:|---:|
 | Uncalibrated | 62,943 (FN=627, FP=243) | 3,541 (FN=7, FP=2,841) |
 | Temperature-scaled | 62,943 (FN=627, FP=243) | **2,894 (FN=0, FP=2,894)** |
 
 ![Pedestrian cost-optimal loss comparison](results/exercise_7_uncertainty/uncertainty_cost_loss_comparison.png)
 
-The lowest loss among the four tested combinations is the temperature-scaled pedestrian model with the cost-optimal threshold \(\tau^*\). It eliminates false negatives on this test set, which dominates the cost function. The trade-off is severe: it produces a false positive for every non-pedestrian image. Under the toy cost matrix, that is still cheaper than missing pedestrians, but as a real driving policy it would cause near-constant braking. Therefore, the threshold result should be treated as evidence for a conservative safety monitor, not as a complete planner.
+The lowest loss among the four tested combinations is the temperature-scaled pedestrian model with the cost-optimal threshold $\tau^*$. It eliminates false negatives on this test set, which dominates the cost function. The trade-off is severe: it produces a false positive for every non-pedestrian image. Under the toy cost matrix, that is still cheaper than missing pedestrians, but as a real driving policy it would cause near-constant braking. Therefore, the threshold result should be treated as evidence for a conservative safety monitor, not as a complete planner.
 
-The comparison also explains why the default threshold is unsafe for this task. At \(\tau=0.5\), both uncalibrated and calibrated outputs make the same hard decisions, so both retain 627 false negatives. Since each false negative costs 100, the loss is dominated by missed pedestrians. At \(\tau^*\), the system almost always brakes; this drastically reduces false negatives and therefore the total loss. The practical conclusion is not that the vehicle should brake on every frame forever, but that pedestrian detection requires a conservative threshold plus temporal filtering, object tracking, and system-level fallback logic.
+The comparison also explains why the default threshold is unsafe for this task. At $\tau=0.5$, both uncalibrated and calibrated outputs make the same hard decisions, so both retain 627 false negatives. Since each false negative costs 100, the loss is dominated by missed pedestrians. At $\tau^*$, the system almost always brakes; this drastically reduces false negatives and therefore the total loss. The practical conclusion is not that the vehicle should brake on every frame forever, but that pedestrian detection requires a conservative threshold plus temporal filtering, object tracking, and system-level fallback logic.
 
 ### Exercise 7.7: Tracing Overconfidence Through the Safety Analysis
 **Causal scenario.** Reusing the existing hazard and UCA from the STPA analysis:
@@ -686,7 +686,7 @@ This scenario is specifically about uncertainty, not adversarial robustness. The
 
 | Constraint | Verification evidence | Result |
 |---|---|---|
-| **SC-UQ-M1:** Each deployed classifier must satisfy ECE \(\leq 0.05\) on the in-distribution validation/test suite after calibration; the pedestrian classifier must be recalibrated or retrained if it exceeds this bound. | Reliability diagrams and ECE before/after temperature scaling. | Traffic light passes after scaling (0.0380), vehicle passes after scaling (0.0412), pedestrian fails after scaling (0.0671). |
+| **SC-UQ-M1:** Each deployed classifier must satisfy ECE $\leq 0.05$ on the in-distribution validation/test suite after calibration; the pedestrian classifier must be recalibrated or retrained if it exceeds this bound. | Reliability diagrams and ECE before/after temperature scaling. | Traffic light passes after scaling (0.0380), vehicle passes after scaling (0.0412), pedestrian fails after scaling (0.0671). |
 
 The calibrated pedestrian model therefore does **not** meet the proposed model-level constraint. The safety case cannot claim that the pedestrian confidence scores are reliable enough for deployment.
 
@@ -694,7 +694,7 @@ The calibrated pedestrian model therefore does **not** meet the proposed model-l
 
 | Constraint | Rationale | Verification evidence |
 |---|---|---|
-| **SC-UQ-S1:** The planner must not use the default \(\tau=0.5\) argmax rule for pedestrian braking. It must use a calibrated probability and a cost-sensitive threshold no higher than \(\tau^*=0.0099\), or enter a safe fallback when calibration/ODD monitors are invalid. | A pedestrian miss costs far more than an unnecessary brake. The default threshold caused 627 false negatives and a loss of 62,943. | The cost table shows that \(\tau^*\) reduces loss from 62,943 to 3,541 uncalibrated and to 2,894 after temperature scaling. |
+| **SC-UQ-S1:** The planner must not use the default $\tau=0.5$ argmax rule for pedestrian braking. It must use a calibrated probability and a cost-sensitive threshold no higher than $\tau^*=0.0099$, or enter a safe fallback when calibration/ODD monitors are invalid. | A pedestrian miss costs far more than an unnecessary brake. The default threshold caused 627 false negatives and a loss of 62,943. | The cost table shows that $\tau^*$ reduces loss from 62,943 to 3,541 uncalibrated and to 2,894 after temperature scaling. |
 
 **Verification.** The ECE values and reliability diagrams verify the model-level calibration claim. The cost-loss table verifies the downstream decision rule. Because the pedestrian model fails the proposed ECE threshold after calibration, the correct safety conclusion is not "deploy with temperature scaling"; it is "temperature scaling alone is insufficient for the pedestrian detector."
 
@@ -706,18 +706,18 @@ The calibrated pedestrian model therefore does **not** meet the proposed model-l
 Adversarial examples are inputs crafted with imperceptible (or small) intentional perturbations designed to cause a machine learning model to make a mistake. Unlike Out-of-Distribution (OOD) examples which are natural inputs from a different distribution (e.g. night vs day), adversarial examples are usually mathematically optimized in the neighborhood of the in-distribution data to cross the model's decision boundary.
 
 ### Exercise 8.2: Attack Formulation
-1. \(x_i\) is the input image at step i. \(\alpha\) is the step size. \(L\) is the loss function. \(y\) is the true label. \(f(x_i)\) is the model prediction. \(\nabla_x\) is the gradient of the loss with respect to the input pixels.
-2. **Targeted vs Untargeted**: Untargeted aims to maximize loss w.r.t the true label to cause ANY misclassification. Targeted aims to minimize loss w.r.t a specific chosen target class to cause the model to output that specific class. Formula changes for targeted: \(x_{i+1} = x_i - \alpha \nabla_x L(y_{target}, f(x_i))\).
-3. This basic update rule doesn't respect a perturbation budget \(\epsilon\). It can be modified by projecting the perturbed image back into the \(\epsilon\)-ball around \(x_0\) at each step (Projected Gradient Descent) or by clamping (e.g. FGSM uses the sign of the gradient multiplied by epsilon).
+1. $x_i$ is the input image at step i. $\alpha$ is the step size. $L$ is the loss function. $y$ is the true label. $f(x_i)$ is the model prediction. $\nabla_x$ is the gradient of the loss with respect to the input pixels.
+2. **Targeted vs Untargeted**: Untargeted aims to maximize loss w.r.t the true label to cause ANY misclassification. Targeted aims to minimize loss w.r.t a specific chosen target class to cause the model to output that specific class. Formula changes for targeted: $x_{i+1} = x_i - \alpha \nabla_x L(y_{target}, f(x_i))$.
+3. This basic update rule doesn't respect a perturbation budget $\epsilon$. It can be modified by projecting the perturbed image back into the $\epsilon$-ball around $x_0$ at each step (Projected Gradient Descent) or by clamping (e.g. FGSM uses the sign of the gradient multiplied by epsilon).
 
 ### Exercise 8.3: Defenses
 **Adversarial training** involves generating adversarial examples during the training process and adding them to the training batches with their correct labels. This teaches the model to be robust to those specific perturbations. **Trade-off**: It typically reduces standard accuracy on clean inputs (the robustness-accuracy trade-off) and increases training time significantly.
 
 ### Exercise 8.4 & 8.5: Measuring Robustness
 Fast Gradient Sign Method (FGSM) attacks were generated against the three CARLA classifiers. 
-- At \(\epsilon = 0.01\) perturbations are barely visible. 
-- At \(\epsilon = 0.05\) they appear as slight noise. 
-- At \(\epsilon = 0.10\) the noise is very visible and unnatural.
+- At $\epsilon = 0.01$ perturbations are barely visible. 
+- At $\epsilon = 0.05$ they appear as slight noise. 
+- At $\epsilon = 0.10$ the noise is very visible and unnatural.
 
 #### Adversarial Progression (Pedestrian Model)
 ![Adversarial eps=0.01](results/exercise_8/fgsm_samples_pedestrian_eps_0.01.png)
@@ -742,15 +742,15 @@ The fundamental hazard (H-4) identified in STPA was **"The vehicle fails to brak
 - **Distribution Shift (Exercise 4 & 9)**: The ODD coverage analysis (Ex 4.5) proved the test set is inadequate. When exposed to fog or a new town layout, the vehicle model's confidence arbitrarily *increased* while accuracy plummeted. Maximum Softmax Probability (MSP) failed to detect semantic shifts (AUROC 0.4172).
 - **Data Poisoning (Exercise 5)**: A backdoor attack successfully forced the model to ignore pedestrians when a simple 10x10 trigger was present, bypassing standard validation checks.
 - **Spurious Correlations (Exercise 6)**: Explainability maps (CAM/Occlusion) revealed models were sometimes relying on the sky or background architecture rather than the pedestrian, explaining the catastrophic failures in Town-01.
-- **Adversarial Perturbations (Exercise 8)**: Even imperceptible noise (\(\epsilon = 0.01\)) cut the Vehicle model's recall by over 35%, and \(\epsilon=0.10\) reduced all models to near 0% recall.
+- **Adversarial Perturbations (Exercise 8)**: Even imperceptible noise ($\epsilon = 0.01$) cut the Vehicle model's recall by over 35%, and $\epsilon=0.10$ reduced all models to near 0% recall.
 
 **2. Unified Unsafe Control Actions (UCA)**
 - *UCA-System-1*: The Path Planner commands "Maintain Speed" because the perception subsystem outputs a false negative (due to adversarial attack, backdoor trigger, or out-of-distribution domain) AND the system fails to quantify this uncertainty.
 
 **3. Comprehensive Safety Constraints & Architecture**
 To mitigate these cascading failure modes, the system architecture must enforce a defense-in-depth strategy:
-- **Constraint 1 (Feature-Based Anomaly Detection)**: As proven in Ex 9.7, the system MUST run a \(k\)-NN feature-based OOD monitor to catch semantic shifts (like new towns) that fool raw softmax scores.
-- **Constraint 2 (Adversarial Robustness)**: The primary classifiers must undergo adversarial training to guarantee a minimum recall bound against bounded adversarial perturbations (\(\epsilon \le 0.05\)), neutralizing FGSM and similar bounded gradient attacks.
+- **Constraint 1 (Feature-Based Anomaly Detection)**: As proven in Ex 9.7, the system MUST run a $k$-NN feature-based OOD monitor to catch semantic shifts (like new towns) that fool raw softmax scores.
+- **Constraint 2 (Adversarial Robustness)**: The primary classifiers must undergo adversarial training to guarantee a minimum recall bound against bounded adversarial perturbations ($\epsilon \le 0.05$), neutralizing FGSM and similar bounded gradient attacks.
 - **Constraint 3 (Multi-Modal Consensus)**: Because camera models are inherently vulnerable to patches (Ex 5) and pixel noise (Ex 8), the planner MUST require consensus between the visual classifiers and a structurally different sensor (e.g., LiDAR or Radar) before approving acceleration in populated zones.
 - **Constraint 4 (Continuous ODD Monitoring)**: Since the static test set lacks combinatorial ODD coverage (Ex 4.5), the vehicle must employ runtime monitors to detect environmental drift (e.g., contrast drops indicating fog) and trigger a safe fallback (speed reduction) before the perception model fails.
 
