@@ -1,0 +1,77 @@
+{
+  "tau_star": 0.009900990099009901,
+  "models": {
+    "pedestrian": {
+      "temperature": 1.7,
+      "validation_nll": 0.5729147889139672,
+      "uncalibrated": {
+        "ece": 0.043383471952628413,
+        "accuracy": 0.7583333333333333,
+        "test_nll": 0.5403892105979852
+      },
+      "calibrated": {
+        "ece": 0.06709050628021133,
+        "accuracy": 0.7583333333333333,
+        "test_nll": 0.5382054001997282
+      }
+    },
+    "traffic_light": {
+      "temperature": 0.9,
+      "validation_nll": 0.14034953827506622,
+      "uncalibrated": {
+        "ece": 0.035472897327347014,
+        "accuracy": 0.9025,
+        "test_nll": 0.29734493025508313
+      },
+      "calibrated": {
+        "ece": 0.03796657454818101,
+        "accuracy": 0.9025,
+        "test_nll": 0.31302491491854
+      }
+    },
+    "vehicle": {
+      "temperature": 1.2,
+      "validation_nll": 0.4429733794130389,
+      "uncalibrated": {
+        "ece": 0.05638322909776535,
+        "accuracy": 0.7544444444444445,
+        "test_nll": 0.48262986177816086
+      },
+      "calibrated": {
+        "ece": 0.04118203493499706,
+        "accuracy": 0.7544444444444445,
+        "test_nll": 0.4746922690123541
+      }
+    }
+  },
+  "pedestrian_cost_results": {
+    "uncalibrated_tau_0_5": {
+      "tp": 79,
+      "fp": 243,
+      "tn": 2651,
+      "fn": 627,
+      "loss": 62943
+    },
+    "uncalibrated_tau_star": {
+      "tp": 699,
+      "fp": 2841,
+      "tn": 53,
+      "fn": 7,
+      "loss": 3541
+    },
+    "calibrated_tau_0_5": {
+      "tp": 79,
+      "fp": 243,
+      "tn": 2651,
+      "fn": 627,
+      "loss": 62943
+    },
+    "calibrated_tau_star": {
+      "tp": 706,
+      "fp": 2894,
+      "tn": 0,
+      "fn": 0,
+      "loss": 2894
+    }
+  }
+}

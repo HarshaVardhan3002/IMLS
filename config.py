@@ -10,12 +10,30 @@ import torch
 from torchvision import transforms
 
 # ---------------------------------------------------------------------------
-# Paths — adjust BASE_DIR to wherever the CARLA dataset is extracted
+# Paths - adjust BASE_DIR to wherever the CARLA dataset is extracted
 # ---------------------------------------------------------------------------
-BASE_DIR = os.environ.get(
-    "CARLA_DATA_DIR",
-    r"F:\old_desktop\Desktop (1)\Lecturers SoSe 2026\Introduction to ML Safety"
-    r"\Excercise\2026\2026",
+# Project root (repo_staging)
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+WORKSPACE_ROOT = os.path.dirname(PROJECT_ROOT)
+
+_DEFAULT_DATA_CANDIDATES = [
+    os.path.join(WORKSPACE_ROOT, "datasets"),
+    os.path.join(
+        WORKSPACE_ROOT,
+        "Excercise",
+        "2026",
+        "2026",
+    ),
+]
+
+
+def _has_extracted_data(path: str) -> bool:
+    return os.path.exists(os.path.join(path, "train", "train", "labels.csv"))
+
+
+BASE_DIR = os.environ.get("CARLA_DATA_DIR") or next(
+    (path for path in _DEFAULT_DATA_CANDIDATES if _has_extracted_data(path)),
+    _DEFAULT_DATA_CANDIDATES[-1],
 )
 
 TRAIN_DIR = os.path.join(BASE_DIR, "train", "train")
@@ -25,8 +43,6 @@ TEST_FOG_DIR = os.path.join(BASE_DIR, "test-fog", "test-fog")
 TEST_NIGHT_DIR = os.path.join(BASE_DIR, "test-night", "test-night")
 TEST_TOWN_DIR = os.path.join(BASE_DIR, "test-town-01", "test-town-01")
 
-# Project root (repo_staging)
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(PROJECT_ROOT, "results")
 MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
 
